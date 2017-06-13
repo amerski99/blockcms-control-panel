@@ -1,0 +1,14 @@
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=733558
+	// for the documentation about the tasks.json format
+	"version": "0.1.0",
+	"command": "docker",
+	"isShellCommand": true,
+	"showOutput": "always",
+	"tasks": [{
+		"taskName": "cpWatch",
+		"suppressTaskName": true,
+		"echoCommand": true,
+		"args": ["run", "--rm", "-p", "9001:3080","-v","${workspaceRoot}/cp:/app","jmfirth/webpack","webpack-dev-server", "--host", "0.0.0.0", "--inline"]
+	}]
+}

@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"jsx": "react",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"noImplicitAny": true,
+		"baseUrl": "./src",
+		"outDir": "./build/",
+		"preserveConstEnums": true,
+		"removeComments": true,
+		"target": "es2017",
+		"lib": [
+			"dom",
+			"es2015",
+			"es2017"
+		]
+	},
+	"exclude": [
+		"node_modules"
+	]
+}

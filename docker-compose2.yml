@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+ cms-api:
+    image: microsoft/dotnet:1.1-runtime
+    command: ["dotnet", "cms.dll"]
+    environment:
+      PS_ENVIRONMENT: development
+    ports:
+      - "9000:2081"
+    restart: always
+    stdin_open: true
+    tty: true
+    working_dir: /app
+    volumes:
+      - ./api:/app

@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  cms-cp:
+    image: jmfirth/webpack
+    port:
+      -p 3000:8080
+    restart: always
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
