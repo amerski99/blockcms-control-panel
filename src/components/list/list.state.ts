@@ -6,5 +6,6 @@ export interface IListState {
     config: IListConfig
     isLoading: boolean
 	isFresh: boolean
+	selectedEntityId: string
     items: Array<IContentEntity>
 }

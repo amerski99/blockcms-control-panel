@@ -1,75 +1,105 @@
 import * as React from 'react';
-import { ActionCreator, Dispatch } from 'redux';
+import { ActionCreator } from 'redux';
 
-import { registerComponent, ComponentGroups, IComponentConfig } from 'scripts/component-connect';
+
+import { registerComponent, ComponentGroups, IComponentSetup, Dispatcher } from 'scripts/component-connect';
 import { IAppState } from 'components/app';
-import { IPageState, PageActions } from 'components/page';
+import { IPageState } from 'components/page';
 import { IPagePartProp } from 'components/page-part';
 
 import { FormActions } from './form.actions';
 import { IFormConfig } from './form.config';
 import { formReducer } from './form.reducer';
 import { IFormState } from './form.state';
-import { Form, IFormProp } from './form.view';
+import { Form, IFormProp, IFormButtons } from './form.view';
 import { FormButtonTypes, IFormButtonProp } from './formButton';
 
-const config: IComponentConfig<IFormProp> = {
+const config: IComponentSetup<IFormProp, FormActions.IDefinition> = {
 	group: ComponentGroups.PagePart,
+	actions: FormActions.Default,
 	name: 'Form',
 	reducer: formReducer,
 	viewClass: Form
 }
 
-let mapStateDispatchToProps = (ownProps: IPagePartProp, formState: IFormState, pageState: IPageState, formDispatch: Dispatch<any>, pageDispatch: Dispatch<any>): IFormProp =>{	
-	let config = ownProps.config as IFormConfig;
-	let buttons: Array<IFormButtonProp> = [];
+function mapStateToProps(formState: IFormState) {
+	let config = formState.config as IFormConfig;
 
-	buttons.push({
+	let buttons: IFormButtons = {};
+	let isWorking = formState.isSaving || formState.isLoading;
+
+	buttons[FormButtonTypes.Save] = {
 		label: 'Save',
 		type: FormButtonTypes.Save,
-		isDisabled: false
-	});
+		isDisabled: !formState.isModified || isWorking
+	} as IFormButtonProp;
 
-	if (config.isRemoveEnabled) {
-		buttons.push({
+	if (config.isRemoveEnabled && !!formState.currentEntity) {
+		buttons[FormButtonTypes.Remove] = {
 			label: 'Remove',
-			type: FormButtonTypes.Remove,
-			isDisabled: false,
-			onClick: () => pageDispatch(FormActions.remove(pageState.selectedEntityId))
-		});		
+			isDisabled: isWorking
+		} as IFormButtonProp;
 	}
 
 	if (config.isResetEnabled) {
-		buttons.push({
-			label: 'Remove',
-			type: FormButtonTypes.Remove,
-			isDisabled: false,
-			onClick: () => formDispatch(FormActions.reset())
-		});		
+		buttons[FormButtonTypes.Reset] = {
+			label: 'Reset',
+			isDisabled: !formState.isModified || isWorking,
+		} as IFormButtonProp;
 	}
 
-	if (config.isClearEnabled) {
-		buttons.push({
+	if (config.isClearEnabled && !!formState.currentEntity) {
+		buttons[FormButtonTypes.Clear] = {
 			label: 'Clear',
-			type: FormButtonTypes.Clear,
-			isDisabled: false,
-			onClick: () => pageDispatch(PageActions.clearItemAction(pageState.selectedEntityId))
-		});
+			isDisabled: isWorking
+		} as IFormButtonProp;
 	}
 
+	Object.keys(buttons).forEach((k:any) => {
+		buttons[k].type = k as FormButtonTypes;
+	});
 	return {
-		name: ownProps.name,
 		label: config.type,
 		formItems: config.formItems,
 		buttons: buttons,
-		isDisabled: formState.isSaving,
-		onLoad: () => formDispatch(FormActions.load(pageState.selectedEntityId, formState)),
-		onSubmit: () => pageDispatch(FormActions.submit(formState))
-	};
+		isDisabled: formState.isSaving
+	}
 }
 
+function mapDispatchToProps(dispatch: Dispatcher<any>, ownProps: IPagePartProp, actions: FormActions.IDefinition) {
+	return (topDispatch: Dispatcher<any>) => {
+		return {
+			onClear: () => ownProps.onClearEntity(),
+			onLoad: () => dispatch(actions.load),
+			onRemove: () => dispatch(actions.remove),
+			onReset: () => dispatch(actions.reset),
+			onSubmit: () => dispatch(actions.submit)
+		}
+	}
+};
+
+function mergeProps(stateProps: any, dispatchProps: any, ownProps: IPagePartProp): IFormProp {
+	setButtonAction(stateProps, FormButtonTypes.Clear, dispatchProps.onClear);
+	setButtonAction(stateProps, FormButtonTypes.Remove, dispatchProps.onRemove);
+	setButtonAction(stateProps, FormButtonTypes.Reset, dispatchProps.onReset);
+
+	return {
+		...stateProps,
+		onLoad: dispatchProps.onLoad,
+		onSubmit: dispatchProps.onSubmit
+	}
+}
+
+function setButtonAction(stateProps: any, buttonType: FormButtonTypes, action: any) {
+	if (stateProps.buttons[buttonType]) {
+		stateProps.buttons[buttonType].onClick = action;
+	}
+	return stateProps;
+}
 
 registerComponent(
 	config,
-	mapStateDispatchToProps
+	mapStateToProps,
+	mapDispatchToProps,
+	mergeProps
 )

@@ -21,6 +21,7 @@ let appConfig: IAppConfig = {
 	},
 	pages: {
 		AboutUs: {
+			type: "StandardPage",
 			parts: {
 				Form: <IFormConfig> {
 					type: "Form",
@@ -38,6 +39,7 @@ let appConfig: IAppConfig = {
 			}
 		},
 		TeamMembers: {
+			type: "StandardPage",
 			parts: {
 				List: <IListConfig>{
 					type: "List",
@@ -52,9 +54,9 @@ let appConfig: IAppConfig = {
 				Form: <IFormConfig> {
 					type: "Form",
 					label: "About Us - Team Member",
-					isResetEnabled: true,
-					isClearEnabled: false,
-					isRemoveEnabled: false,
+					isResetEnabled: false,
+					isClearEnabled: true,
+					isRemoveEnabled: true,
 					formItems: {
 						FullName: {
 							type: "SingleLineText",

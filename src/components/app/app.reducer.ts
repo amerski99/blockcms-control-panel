@@ -6,6 +6,7 @@ import { IPageState } from 'components/page';
 import { AppActions } from './app.actions';
 import { IAppConfig } from './app.config';
 import { IAppState } from './app.state';
+import { reduceReducers } from "scripts/util";
 
 let appReducer = handleActions({
 	[AppActions.ActionTypes.SelectPage]: (state: IAppState, action: any) => {
@@ -26,7 +27,7 @@ let appReducer = handleActions({
 	config: {}
 })
 
-appReducer = addComponentReducers(
+let componentReducers = addComponentReducers(
 	ComponentGroups.Page, 
 	(state: IAppState) =>  state.pages,
 	(state: { [pageName: string]: IPageState}) => {
@@ -42,9 +43,10 @@ appReducer = addComponentReducers(
 				type: 'StandardPage'	// only page type right now
 			}
 		}: {}
-	},
-	appReducer
+	}
 )
+
+appReducer = reduceReducers(appReducer, componentReducers);
 
 export { appReducer }
 

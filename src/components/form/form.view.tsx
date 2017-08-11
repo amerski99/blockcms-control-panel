@@ -3,15 +3,20 @@ import { IPagePartProp } from 'components/page-part';
 import { IFormItemConfig, IFormItemProp, FormItem } from 'components/form-item';
 import { IFormButtonProp, FormButton } from './formButton';
 import { IFormItemConfigMap } from './form.config';
+import { toArray } from 'scripts/util';
 
 export interface IFormProp {
 	name: string
 	label: string
 	formItems: IFormItemConfigMap
-	buttons: Array<IFormButtonProp>
+	buttons: IFormButtons
 	isDisabled: boolean
 	onLoad(): void
 	onSubmit(): void
+}
+
+export interface IFormButtons {
+	[type: string]: IFormButtonProp 
 }
 
 export class Form extends React.Component<IFormProp, {}> {
@@ -33,14 +38,14 @@ export class Form extends React.Component<IFormProp, {}> {
 					{Object.keys(formItems).map(k => this.renderFormItem(k, formItems[k]))}
 				</fieldset>
 				<div className="buttons">
-					{buttons.map(x => this.renderButton(x))}
+					{toArray(buttons).map(x => this.renderButton(x))}
 				</div>
 			</form>
 		);
 	}
 
-	renderButton(prop: IFormButtonProp) {
-		return <FormButton key={prop.label} {...prop} />
+	renderButton(props: IFormButtonProp) {
+		return <FormButton key={props.label} {...props} />
 	}
 
 	renderFormItem(name: string, config: IFormItemConfig) {

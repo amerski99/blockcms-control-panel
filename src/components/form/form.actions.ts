@@ -2,13 +2,15 @@ import 'redux-thunk';
 import { Dispatch } from 'react-redux';
 import { IFormConfig, IFormState } from 'components/form';
 import * as Api from 'scripts/api';
+import { DispatchAction } from "scripts/component-connect";
 
 export namespace FormActions {
 	export const ActionTypes = {
+		Clear: 'FORM.RESET',
 		Load: 'FORM.LOAD',
-		Submit: 'FORM.SUBMIT',
 		Remove: 'FORM.REMOVE',
 		Reset: 'FORM.RESET',
+		Submit: 'FORM.SUBMIT',
 		FetchStart: 'FORM.FETCH_START',
 		FetchError: 'FORM.FETCH_ERROR',
 		FetchSuccess: 'FORM.FETCH_SUCCESS',
@@ -16,25 +18,55 @@ export namespace FormActions {
 		SaveStart: 'FORM.SAVE_START',
 		SaveError: 'FORM.SAVE_ERROR',
 		SaveSuccess: 'FORM.SAVE_SUCCESS',
-		SaveComplete: 'FORM.SAVE_COMPLETE'
+		SaveComplete: 'FORM.SAVE_COMPLETE',
+		RemoveStart: 'FORM.REMOVE_START',
+		RemoveError: 'FORM.REMOVE_ERROR',
+		RemoveSuccess: 'FORM.REMOVE_SUCCESS',
+		RemoveComplete: 'FORM.REMOVE_COMPLETE'
 	};
 
-	export function load(entityId: string, formState: IFormState) {
-		return (dispatch: Dispatch<any>) => {
-
-			dispatch({
-				type: ActionTypes.Load,
-				entityId: entityId
-			});
+	export interface IDefinition {
+		clear: () => any
+		load: DispatchAction<any, IFormState>
+		remove: DispatchAction<any, IFormState>
+		reset: () => any
+		submit: DispatchAction<any, IFormState>
+	}
+	
+	export const Default: IDefinition = {
+		clear: function formClear(){
+			return {
+				type: ActionTypes.Clear
+			};
+		},
+	 	load: function formLoad(dispatch: Dispatch<any>, getState: () => IFormState) {
+			let formState = getState();
+			let entityId = formState.loadEntityId;
 
 			if (shouldReloadCurrentEntity(entityId, formState)) {
-				dispatch(fetchAction(entityId, formState.config));
+				fetchAction(dispatch, entityId, formState.config);
 			}
-		}
-	}
+		},
+		remove: function formRemove(dispatch: Dispatch<any>, getState: () => IFormState) {
+			let formState = getState();
+			let { id } = formState.currentEntity;
 
-	export function submit(formState: IFormState) {
-		return (dispatch: Dispatch<any>) => {
+			dispatch({
+				type: ActionTypes.Remove,
+				entityId: id
+			});
+
+			//if (shouldSubmit(formState)) {
+			dispatch(removeAction(id))
+			//}
+		},
+		reset: function formReset() {
+			return {
+				type: ActionTypes.Reset
+			};
+		},
+		submit: function formSubmit(dispatch: Dispatch<any>, getState: () => IFormState) {
+			let formState = getState();
 			let { id, writeData } = formState.currentEntity;
 
 			dispatch({
@@ -44,40 +76,24 @@ export namespace FormActions {
 			});
 
 			if (shouldSubmit(formState)) {
-				dispatch(saveAction(id, writeData))
+				return saveAction(dispatch, id, writeData)
 			}
 		}
 	}
 
-	export function remove(entityId: string) {
-		return {
-			type: ActionTypes.Remove,
+	function fetchAction(dispatch: Dispatch<any>, entityId: string, formConfig: IFormConfig) {
+		dispatch({
+			type: ActionTypes.FetchStart,
 			entityId: entityId
-		};
-	}
+		});
 
-	export function reset() {
-		return {
-			type: ActionTypes.Reset
-		};
-	}
+		let query = buildQuery(entityId, formConfig);
 
-	function fetchAction(entityId: string, formConfig: IFormConfig) {
-		return (dispatch: Dispatch<any>) => {
-
-			dispatch({
-				type: ActionTypes.FetchStart,
-				entityId: entityId
-			});
-
-			let query = buildQuery(entityId, formConfig);
-
-			if (query) {
-				Api.queryEntities(query)
-					.then((result: any) => dispatch(fetchSuccessAction(entityId, result)),
-					(response: any) => dispatch(fetchErrorAction(entityId, response)))
-					.then(() => dispatch(fetchCompleteAction(entityId)));
-			}
+		if (query) {
+			return Api.queryEntities(query)
+				.then((result: any) => dispatch(fetchSuccessAction(entityId, result)))
+				.catch((response: any) => dispatch(fetchErrorAction(entityId, response)))
+				.then(() => dispatch(fetchCompleteAction(entityId)));
 		}
 	}
 
@@ -104,26 +120,24 @@ export namespace FormActions {
 		};
 	}
 
-	function saveAction(entityId: string, writeData: Object) {
-		return (dispatch: Dispatch<any>) => {
+	function saveAction(dispatch: Dispatch<any>, entityId: string, writeData: Object) {
+		dispatch({
+			type: ActionTypes.SaveStart,
+			entityId: entityId
+		});
 
-			dispatch({
-				type: ActionTypes.SaveStart,
-				entityId: entityId
-			});
+		let saveData = {
+			fields: writeData
+		};
 
-			let saveData = {
-				fields: writeData
-			};
+		let saveMethod = entityId ?
+			Api.updateEntity(entityId, saveData)
+			: Api.insertEntity(saveData);
 
-			let saveMethod = entityId ?
-				Api.updateEntity(entityId, saveData)
-				: Api.insertEntity(saveData);
-
-			saveMethod.then((result: any) => dispatch(saveSuccessAction(entityId, result)),
-				(response: any) => dispatch(saveErrorAction(entityId, response)))
-				.then(() => dispatch(saveCompleteAction(entityId)));
-		}
+		return saveMethod
+			.then((result: any) => dispatch(saveSuccessAction(entityId, result)))
+			.catch((response: any) => dispatch(saveErrorAction(entityId, response)))
+			.then(() => dispatch(saveCompleteAction(entityId)));
 	}
 
 	function saveSuccessAction(entityId: string, result: any) {
@@ -149,6 +163,42 @@ export namespace FormActions {
 		};
 	}
 
+	function removeAction(entityId: string) {
+		return (dispatch: Dispatch<any>) => {
+
+			dispatch({
+				type: ActionTypes.RemoveStart,
+				entityId: entityId
+			});
+
+			return Api.deleteEntity(entityId)
+				.then((result: any) => dispatch(removeSuccessAction(entityId)),
+				(response: any) => dispatch(removeErrorAction(entityId, response)))
+				.then(() => dispatch(removeCompleteAction(entityId)));
+		}
+	}
+
+	function removeSuccessAction(entityId: string) {
+		return {
+			type: ActionTypes.RemoveSuccess,
+			entityId: entityId
+		};
+	}
+
+	function removeErrorAction(entityId: string, response: any) {
+		return {
+			type: ActionTypes.RemoveError,
+			entityId: entityId,
+			response: response
+		};
+	}
+
+	function removeCompleteAction(entityId: string) {
+		return {
+			type: ActionTypes.RemoveComplete,
+			entityId: entityId
+		};
+	}
 	function buildQuery(entityId: string, formConfig: IFormConfig): Api.IQueryDefinition | null {
 		if (entityId) {
 			return { id: entityId };
@@ -163,11 +213,7 @@ export namespace FormActions {
 	}
 
 	function shouldReloadCurrentEntity(entityId: string, formState: IFormState): boolean {
-		let currentItem = formState.currentEntity;
-		return !formState.isLoading
-			&& ((!currentItem && !!entityId)
-				|| (currentItem && currentItem.id != entityId))
-		//	|| (currentItem && !currentItem.isFresh));
+		return formState.isStale;
 	}
 
 

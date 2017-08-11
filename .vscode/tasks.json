@@ -4,11 +4,13 @@
 	"version": "0.1.0",
 	"command": "docker",
 	"isShellCommand": true,
-	"showOutput": "always",
+	"showOutput": "silent",
 	"tasks": [{
 		"taskName": "cpWatch",
 		"suppressTaskName": true,
 		"echoCommand": true,
-		"args": ["run", "--rm", "-p", "9001:3080","-v","${workspaceRoot}/cp:/app","jmfirth/webpack","webpack-dev-server", "--host", "0.0.0.0", "--inline"]
+		"showOutput": "silent",
+		"isBackground": true,
+		"args": ["run", "--rm", "-t", "-p","9200:9200", "-v","${workspaceRoot}:/app", "--network","blockcmsapi_default", "--name", "blockcms.cp-dev", "jmfirth/webpack", "bash", "-c", "\"webpack-dev-server\""]
 	}]
 }

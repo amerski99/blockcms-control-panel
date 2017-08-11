@@ -27,7 +27,7 @@ export class App extends React.Component<IAppProp, {}> {
 	}
 
 	renderPage(name: string, config: IPageConfig) {
-		return <Page name={name} />
+		return <Page name={name} config={config} />
 	}
 
 	renderStartPage() {

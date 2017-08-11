@@ -1,7 +1,8 @@
 import { IQueryDefinition } from 'scripts/api';
 import { IPagePartConfig } from 'components/page-part';
+import { IComponentConfig } from "scripts/component-connect";
 
-export interface IPageConfig {
+export interface IPageConfig extends IComponentConfig {
 	parts: IPagePartMap,
 	queries?: Array<IQueryDefinition>
 }

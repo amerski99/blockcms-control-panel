@@ -42,7 +42,7 @@ export enum OperandTypeCodes {
 }
 
 // TODO: make dynamic
-const AuthToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1OGJkZGJmMzM4MDUwNTEyYWVkN2I0YzIiLCJqdGkiOiIxODExZmYxMS0zOGQ0LTQ1MDctYjExZC0xMDk0NWI4MWQ4YTYiLCJpYXQiOjE0OTAxMjgzNjksIm5iZiI6MTQ5MDE1MzU2OSwiZXhwIjoxNDkwNzU4MzY5LCJpc3MiOiJwb3dlcnNjb3V0LWNtcyIsImF1ZCI6InBvd2Vyc2NvdXQtY21zIn0.Hrc83B5IbZEquqFwbXvDj9MdImI6gyEh73Tg01tkreQ'
+const AuthToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1OGJkZGJmMzM4MDUwNTEyYWVkN2I0YzIiLCJqdGkiOiJkNDg5NzhjNy0yYzFlLTQ5YjEtYWRmNy0yYWM4NDgwODVhNDIiLCJpYXQiOjE0OTkxNTA5MTksIm5iZiI6MTQ5OTE1MDkxOSwiZXhwIjoxNDk5NzU1NzE5LCJpc3MiOiJwb3dlcnNjb3V0LWNtcyIsImF1ZCI6InBvd2Vyc2NvdXQtY21zIn0._j6SCX0jv1DhA5YyrO5EsqnbjAamuhWmS8TYHCPBlFs'
 const BaseUrl = '/api/content/items'
 
 export function queryEntities(query: IQueryDefinition): Promise<any> {
@@ -76,6 +76,14 @@ export function updateEntity(id: string, data: Object): Promise<any> {
 	let url = BaseUrl + '/' + encodeURIComponent(id);
 
 	return request(url, 'PUT', data);
+}
+
+export function deleteEntity(id: string): Promise<any> {
+	console.log('remove entity.  id: ', id);
+
+	let url = BaseUrl + '/' + encodeURIComponent(id);
+
+	return request(url, 'DELETE');
 }
 
 function request(url: string, method: string = 'GET', data: any = null): Promise<any> {

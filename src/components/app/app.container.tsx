@@ -9,17 +9,18 @@ import { AppActions } from './app.actions';
 import { App as AppView } from './app.view';
 
 import InitialConfig from 'config';
+import { middleware as componentMiddleware } from 'scripts/component-connect/middleware';
 
 const composeEnhancers = (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__;
 
 const store: Store<any> = createStore(
 	appReducer,
 	{ config: InitialConfig } as IAppState,	
-	composeEnhancers(applyMiddleware(thunk))
+	composeEnhancers(applyMiddleware(componentMiddleware, thunk))
 );
 
 
-const mapStateToProps = (state: IAppState) => {
+const mapStateToProps = (state: IAppState):any  => {
 	return {
 		config: state.config,
 		selectedPage: state.selectedPageName

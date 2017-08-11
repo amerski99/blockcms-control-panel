@@ -4,6 +4,9 @@ import { IPagePartConfig, PagePart } from 'components/page-part';
 
 export interface IStandardPageProp {
 	parts: { [name:string]: IPagePartConfig }
+	onClearEntity(): void
+	onSelectEntity(entityId:string): void
+	onUpdateEntity(entity:any): void
 }
 
 export class StandardPage extends React.Component<IStandardPageProp, {}> {
@@ -22,6 +25,6 @@ export class StandardPage extends React.Component<IStandardPageProp, {}> {
 	}
 
 	renderPart(name: string, config: IPagePartConfig) {
-		return <PagePart key={name} name={name} config={config}  />
+		return <PagePart key={name} {...this.props} name={name} config={config} />
 	}
 }

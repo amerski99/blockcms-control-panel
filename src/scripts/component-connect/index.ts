@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { ActionCreator, Dispatch } from 'redux';
 import { connect as reduxConnect } from 'react-redux';
-import { reduceReducers } from "scripts/util";
-
+import { Action, ActionCreator, Dispatch } from 'redux';
+import { ThunkAction } from 'redux-thunk';
+import { reduceReducers } from 'scripts/util';
+import { forwardDispatchTo } from "scripts/component-connect/middleware";
 
 export enum ComponentGroups {
 	Global,
@@ -12,66 +13,89 @@ export enum ComponentGroups {
 	FormItem
 }
 
-export interface IComponentConfig<TPropEnd> {
+
+export interface IComponentSetup<TPropEnd, TAction> {
 	group: ComponentGroups
 	name: string
 	viewClass: React.ComponentClass<TPropEnd>
+	defaultConfig?: any,
+	actions?: TAction,
 	reducer?(state: any, action: any, parentState: any): any
 }
 
-export function wrapComponent<TStateStart, TStateEnd, TProp>(
+export interface IComponentConfig {
+	type: string
+}
+
+export interface IComponentWrapProps {
+	name: string,
+	config: IComponentConfig
+}
+
+export function wrapComponent<TStateStart, TStateEnd, TProps extends IComponentWrapProps>(
 	componentGroup: ComponentGroups,
-	componentNameSupplier: ISelector<string, TProp>,
-	selectorSupplier: ISelectorSupplier<TProp, TStateEnd, TStateStart>
-): React.ComponentClass<TProp> {
-	let componentSetupSupplier = (prop: TProp) => getComponentFromRegistry(componentGroup, componentNameSupplier(prop));
+	selectorSupplier: ISelectorSupplier<TProps, TStateEnd, TStateStart>
+): React.ComponentClass<TProps> {
+	let componentSetupSupplier = (props: TProps) => getComponentFromRegistry(componentGroup, props.config.type);
 
-	type TPropWrap = TProp & IDispatchProp;
 
-	class ComponentWrapper extends React.Component<TPropWrap, {}> {
-		componentClass: React.ComponentClass<TPropWrap>
+	class ComponentWrapper extends React.Component<TProps, {}> {
+		componentClass: React.ComponentClass<TProps>
 		selector: ISelector<TStateEnd, any>
-		parentSelector: ISelector<TStateStart, any>
-		constructor(props: TPropWrap, ctx: any) {
+		componentNames: Array<string>
+
+		constructor(props: TProps, ctx: any) {
 			super(props, ctx)
+			// get component setup for this compenent (comes from component group and type on the properties)
 			let componentSetup = componentSetupSupplier(props);
+
+			// get component selector from props (this maps from parent state to this component's state)
 			let selector = selectorSupplier(props);
-			this.componentClass = componentSetup.containerClassSupplier(selector);
+
+			this.componentClass = componentSetup.containerClass;
 			this.selector = computeSelector(selector, ctx);
-			this.parentSelector = getParentSelector(ctx);
+			this.componentNames = (ctx.componentNames as Array<string> || []).concat(props.name)
 		}
 
 		getChildContext() {
 			return {
-				selector: this.selector
+				selector: this.selector,
+				componentNames: this.componentNames
 			}
 		}
 
 		render() {
-			return React.createElement(this.componentClass, Object.assign(<TPropWrap>{},
+			return React.createElement(this.componentClass, Object.assign(<TProps>{},
 				this.props, {
 					selector: this.selector,
-					parentSelector: this.parentSelector,
-					dispatch: this.props.dispatch
+					componentNames: this.componentNames
 				}))
 		}
 
 		static contextTypes = {
-			selector: React.PropTypes.func
+			selector: React.PropTypes.func,
+			componentNames: React.PropTypes.array
 		}
 
 		static childContextTypes = {
-			selector: React.PropTypes.func
+			selector: React.PropTypes.func,
+			componentNames: React.PropTypes.array
 		}
 	}
 
 	return ComponentWrapper;
 }
 
-export function registerComponent<TPropEnd, TPropStart>(
-	component: IComponentConfig<TPropEnd>,
-	mapStateAndDispatchToProps?: IMapStateAndDispatchToProps<TPropEnd, TPropStart>,
-	options?: any
+function defaultMapDispatchToProps(): any {
+	return {};
+}
+
+export function registerComponent<TPropEnd, TPropStart, TStateProps, TDispatchProps, TActions>(
+	component: IComponentSetup<TPropEnd, TActions>,
+    mapStateToProps: MapStateToPropsParam<TStateProps, TPropStart>,
+    mapDispatchToProps: MapDispatchToPropsParam<TDispatchProps, TPropStart, TActions> = defaultMapDispatchToProps,
+    mergeProps: MergeProps<TStateProps, TDispatchProps, TPropStart, TPropEnd> = defaultMergeProps,
+	options: any = {}
 ) {
 	if (!componentRegistry[component.group]) {
 		componentRegistry[component.group] = {};
@@ -81,7 +105,14 @@ export function registerComponent<TPropEnd, TPropStart>(
 		Object.assign(<IComponentSetup<TPropEnd, TPropStart>>{},
 			component, {
 				reducer: component.reducer || Identity,
-				containerClassSupplier: connectComponent(component.viewClass, mapStateAndDispatchToProps, options)
+				containerClass: connectComponent(
+						component.viewClass,
+						component.actions,
+						mapStateToProps, 
+						mapDispatchToProps, 
+						mergeProps, 
+						options
+					)
 			});
 }
 
@@ -90,7 +121,7 @@ export function addComponentReducers(
 	componentsStateSelector: (state: any) => IComponentStateMap,
 	componentStateFactory: (newCompState: any) => any,
 	componentsConfigMapSelector: (state: any) => IComponentConfigMap,
-	otherReducers: (state: any, action: any) => any) {
+	otherReducers: (state: any, action: any) => any = Identity) {
 
 	let componentReducer = (state: any, action: any) => {
 		let prevCompState = componentsStateSelector(state) || {};
@@ -116,31 +147,61 @@ export function createComponentsReducer(
 	componentGroup: ComponentGroups,
 	componentsConfig: IComponentConfigMap,
 	parentState: IComponentStateMap) {
-	let reducers = Object.keys(componentsConfig).map((k: string) => {
-		let config = componentsConfig[k];
-		let defaultState = { config: config };
+
+	let reducers = Object.keys(componentsConfig).map((name: string) => {
+		let config = componentsConfig[name];
+		let componentLevel = (parentState.componentLevel || 0) as number + 1;
+		let defaultState = { 
+			name: name, 
+			config: config, 
+			componentLevel
+		};
 		let component = getComponentFromRegistry(componentGroup, config.type);
 
 
 		return (componentsState: any, action: any): any => {
-			let prevPartState = componentsState[k];
-			let newPartState = component.reducer(prevPartState || defaultState, action, parentState);
-			if (newPartState === prevPartState) {
-				return componentsState;
+			let postCalculate = Identity;
+			let actionComponents = action.meta && action.meta.componentNames ||[];
+			let appliesToMe = !actionComponents.length
+								|| actionComponents.length < componentLevel 
+								|| actionComponents[componentLevel-1] == name;
+
+			if (appliesToMe) {	
+				console.log('applies to me...', action.type, name, componentLevel);
+
+				let prevPartState = componentsState[name];
+				let newPartState = component.reducer(prevPartState || defaultState, action, parentState);
+				
+				if (newPartState !== prevPartState) {
+					console.log('...changed');
+					return {
+						...componentsState,
+						[name]: newPartState
+					};
+				}
 			}
-			return {
-				...componentsState,
-				[k]: newPartState
-			};
+			else {
+				console.log('NOT me...', action.type, name, componentLevel);
+			}
+
+			return componentsState;
 		}
 	});
 
 	return reduceReducers(...reducers);
 }
 
+export type DispatchActionFactory<R, S> = (dispatch: Dispatch<any>, getState: () => S) => R;
+
+export type DispatchAction<R, S> = DispatchActionFactory<R, S> | Action
+
+export interface Dispatcher<S> {
+	<R>(action: DispatchAction<R,S>): R;
+}
+
 class ComponentTypeRegistry {
 	[type: number]: {
-		[name: string]: IComponentSetup<any, any>
+		[name: string]: IComponentFullSetup<any, any>
 	}
 }
 
@@ -151,43 +212,46 @@ let componentRegistry = new ComponentTypeRegistry();
 //		Internal
 // -----------------------------------------------------------------------------------
 
-function connectComponent<TPropEnd, TPropStart>(
+
+function connectComponent<TPropEnd, TPropStart, TStateProps, TDispatchProps, TActions>(
 	componentClass: React.ComponentClass<TPropEnd>,
-	mapStateAndDispatchToProps?: IMapStateAndDispatchToProps<TPropEnd, TPropStart>,
+	actions: TActions,
+    mapStateToProps: MapStateToPropsParam<TStateProps, TPropStart>,
+    mapDispatchToProps: MapDispatchToPropsParam<TDispatchProps, TPropStart, TActions>,
+    mergeProps: MergeProps<TStateProps, TDispatchProps, TPropStart, TPropEnd>,
 	options?: any
 ) {
 
-	return (selector: ISelector<any, any>): React.ComponentClass<TPropStart> => {
-		const reduxMapState = (state: any) => {
-			return { state: state }
-		}
-
-		const reduxMapDispatch = (dispatch: Dispatch<any>) => {
-			return { dispatch: dispatch }
-		}
-
-		const reduxMergeProps = (stateOut: any, dispatchOut: any, ownProps: TPropStart & ISelectorProp): TPropEnd =>
-			// TODO: add local dispatch
-			mapStateAndDispatchToProps(ownProps, ownProps.selector(stateOut.state), ownProps.parentSelector(stateOut.state), dispatchOut.dispatch, dispatchOut.dispatch);
-
-		return reduxConnect(
-			reduxMapState,
-			reduxMapDispatch,
-			reduxMergeProps,
-			Object.assign({}, { pure: true }, options)
-		)(componentClass)
-
+	type TPropWrap = TPropStart & IComponentProps;
+	
+	const finalMapStateToProps = (state: any, ownProps?: TPropWrap) => {
+		return mapStateToProps(ownProps.selector(state), ownProps); 
 	}
+
+	let finalMapDispatchToProps = (dispatch: Dispatch<any>, ownProps?: TPropWrap) => {
+		let forwardDispatch = forwardDispatchTo(dispatch, ownProps.selector, ownProps.componentNames);
+		return mapDispatchToProps(forwardDispatch, ownProps, actions);
+	}
+
+	return reduxConnect<TStateProps, TDispatchProps, TPropStart, TPropEnd>(
+		finalMapStateToProps as MapStateToPropsParam<TStateProps, TPropStart>,
+		finalMapDispatchToProps as MapDispatchToPropsParam<TDispatchProps, TPropStart, TActions>,
+		mergeProps,
+		Object.assign({}, { pure: true }, options)
+	)(componentClass)
+
 }
 
 function getComponentFromRegistry(componentGroup: ComponentGroups, name: string) {
 	let group = componentRegistry[componentGroup];
+	let groupName = ComponentGroups[componentGroup].toString();
+
 	if (!group) {
-		throw Error('No components found in group: ' + componentGroup);
+		throw Error(`No components found in group: ${groupName}`);
 	}
 
 	if (!group[name]) {
-		throw Error(`Component "${name}" not found in group: ${componentGroup}`);
+		throw Error(`Component "${name}" not found in group: ${groupName}`);
 	}
 	return group[name];
 }
@@ -211,31 +275,25 @@ function getParentSelector(ctx: any): ISelector<any, any> {
 const Identity = (a: any) => a;
 
 interface IComponentConfigMap {
-	[name: string]: { type: string }
+	[name: string]: IComponentConfig
 }
+
 interface IComponentStateMap {
 	[name: string]: {}
 }
 
-interface IComponentSupplier {
-	(selector: ISelector<any, any>): React.ComponentClass<any>
-}
 
-
-interface IComponentSetup<TPropEnd, TPropStart> extends IComponentConfig<TPropEnd> {
-	containerClassSupplier: IComponentSupplier
+interface IComponentFullSetup<TPropEnd, TActions> extends IComponentSetup<TPropEnd, TActions> {
+	containerClass: React.ComponentClass<any>
 }
 
 interface ISelectorSupplier<TProp, TStateEnd, TStateStart> {
 	(props: TProp): ISelector<TStateEnd, TStateStart>
 }
 
-interface IComponentClassSupplier<TProp> {
-	(props: TProp): React.ComponentClass<any>
-}
-
-interface IComponentProp<TStateEnd> {
-	selector: ISelector<TStateEnd, any>
+interface IComponentProps {
+	selector: ISelector<any, any>
+	componentNames: Array<string>
 }
 
 interface IDispatchProp {
@@ -247,7 +305,7 @@ interface ISelectorProp {
 	parentSelector: ISelector<any, any>
 }
 
-interface ISelector<TEnd, TStart> {
+export interface ISelector<TEnd, TStart> {
 	(state: TStart): TEnd
 }
 
@@ -255,6 +313,35 @@ interface ISelector2<TEnd, TProp> {
 	(state: any, props: TProp): TEnd
 }
 
-interface IMapStateAndDispatchToProps<TPropEnd, TPropStart> {
-	(ownProps: TPropStart, stateLocal: any, stateParent: any, dispatchLocal: Dispatch<any>, dispatchGlobal?: Dispatch<any>): TPropEnd;
+interface MapStateToProps<TStateProps, TOwnProps> {
+    (state: any, ownProps?: TOwnProps): TStateProps;
+}
+
+interface MapStateToPropsFactory<TStateProps, TOwnProps> {
+    (initialState: any, ownProps?: TOwnProps): MapStateToProps<TStateProps, TOwnProps>;
+}
+
+type MapStateToPropsParam<TStateProps, TOwnProps> = MapStateToProps<TStateProps, TOwnProps> | MapStateToPropsFactory<TStateProps, TOwnProps>;
+type MapStateToPropsOut<TStateProps, TOwnProps> =  MapStateToProps<TStateProps, TOwnProps> | TStateProps
+
+interface MapDispatchToPropsFunction<TDispatchProps, TOwnProps, TActions> {
+    (dispatch: Dispatch<any>, ownProps?: TOwnProps, actions?: TActions): TDispatchProps;
+}
+
+
+type MapDispatchToProps<TDispatchProps, TOwnProps, TActions> =
+    MapDispatchToPropsFunction<TDispatchProps, TOwnProps, TActions>;
+
+interface MapDispatchToPropsFactory<TDispatchProps, TOwnProps, TActions> {
+    (dispatch: Dispatch<any>, ownProps?: TOwnProps, actions?: TActions): MapDispatchToProps<TDispatchProps, TOwnProps, TActions>;
+}
+
+type MapDispatchToPropsParam<TDispatchProps, TOwnProps, TActions> = MapDispatchToProps<TDispatchProps, TOwnProps, TActions> | MapDispatchToPropsFactory<TDispatchProps, TOwnProps, TActions>;
+
+interface MergeProps<TStateProps, TDispatchProps, TOwnProps, TMergedProps> {
+    (stateProps: TStateProps, dispatchProps: TDispatchProps, ownProps: TOwnProps): TMergedProps;
+}
+
+export function defaultMergeProps(stateProps: any, dispatchProps: any, ownProps: any): any {
+  return { ...ownProps, ...stateProps, ...dispatchProps }
 }

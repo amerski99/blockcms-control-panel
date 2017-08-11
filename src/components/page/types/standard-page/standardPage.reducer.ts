@@ -1,16 +1,18 @@
 import { ComponentGroups, addComponentReducers } from 'scripts/component-connect';
 import { handleActions } from 'redux-actions';
 
-import { IPageState, PageActions, IPageConfig } from "components/page";
+import { IPageState, IPageConfig } from 'components/page';
 import { AppActions } from 'components/app';
-import { IPagePartState } from "components/page-part";
+import { IPagePartState } from 'components/page-part';
+import { FormActions } from 'components/form';
+import { ListActions } from 'components/list';
 
 type IPagePartStateMap = { [partName:string]: IPagePartState }
 let standardPageReducer = handleActions({
 	[AppActions.ActionTypes.SelectPage]: (state: IPageState, action: any): IPageState => {
 		return state;
 	},
-	[PageActions.ActionTypes.SelectItem]: (state: IPageState, action: any) => {
+	[ListActions.ActionTypes.SelectEntity]: (state: IPageState, action: any) => {
 		let newEntityId = action.entityId;
 		if (newEntityId == state.selectedEntityId) {
 			return state;
@@ -21,12 +23,7 @@ let standardPageReducer = handleActions({
 			selectedEntityId: newEntityId
 		}
 	},
-	[PageActions.ActionTypes.ClearItem]: (state: IPageState, action: any) => {
-		let clearItem = action.entityId;
-		if (clearItem != state.selectedEntityId) {
-			return state;
-		}
-
+	[FormActions.ActionTypes.Clear]: (state: IPageState, action: any) => {
 		return  {
 			...state,
 			selectedEntityId: undefined

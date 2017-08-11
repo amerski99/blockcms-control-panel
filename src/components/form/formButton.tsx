@@ -17,7 +17,7 @@ export class FormButton extends React.Component<IFormButtonProp, {}> {
 	render() {
 		let { label, type, isDisabled, onClick } = this.props;
 		let buttonDomType = getButtonDomType(type);
-
+		console.log('button type', buttonDomType);
 		return (
 			<button
 				type={buttonDomType}
@@ -30,7 +30,8 @@ export class FormButton extends React.Component<IFormButtonProp, {}> {
 }
 
 function getButtonDomType(type: FormButtonTypes) {
+
 	if (type == FormButtonTypes.Save) return 'submit';
 	if (type == FormButtonTypes.Reset) return 'reset';
-	return null;
+	return 'button';
 }

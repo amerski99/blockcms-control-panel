@@ -2,8 +2,8 @@
   "version": "1.0.0",
   "name": "cms-control-panel",
   "scripts": {
-    "webpack": "node_modules/.bin/webpack -w",
-    "serve": "node_modules/.bin/webpack-dev-server"
+	"docker-serve": "docker run --rm -t -p 9200:9200 -v c:/Users/Andrew/Projects/Personal/blockcms/cp:/app --network blockcmsapi_default --name blockcms.cp-dev jmfirth/webpack bash -c \"webpack-dev-server\"",
+    "serve": "./node_modules/.bin/webpack-dev-server"
   },
   "dependencies": {
     "@types/react": "^15.0.15",

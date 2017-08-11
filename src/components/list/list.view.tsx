@@ -11,7 +11,7 @@ export interface IListProp {
 	items: Array<IContentEntity>,
 	mapItem(item: IContentEntity): IMappedListItem
 	onLoad(): any
-	onSelectItem(entityId: string): any 
+	onSelectEntity(entityId: string): any 
 }
 
 export class ListView extends React.Component<IListProp, {}> {
@@ -25,7 +25,7 @@ export class ListView extends React.Component<IListProp, {}> {
 		return (
 			<section>
 				<h2>{label}</h2>
-				{this.props.isLoading? this.renderLoading() : this.renderItems(items)}
+				{this.props.isLoading? this.renderLoading() : this.renderEntities(items)}
 			</section>
 		);
 	}
@@ -34,21 +34,21 @@ export class ListView extends React.Component<IListProp, {}> {
 		return <div>Loading. Please wait...</div>;
 	}
 
-	renderItems(items: Array<IContentEntity>) {
+	renderEntities(items: Array<IContentEntity>) {
 		if (!items || !items.length) return <div>Nothing was found</div>;
 
 		return (
-			<ul>{items.map((i) => this.renderItem(i))}</ul>
+			<ul>{items.map((i) => this.renderEntity(i))}</ul>
 		);
 	}
 
-	renderItem(item: IContentEntity) {
-		let selected = this.props.selectedEntityId == item.id;
-		let { title, subtitle, imgUrl } = this.props.mapItem(item);
+	renderEntity(entity: IContentEntity) {
+		let selected = this.props.selectedEntityId == entity.id;
+		let { title, subtitle, imgUrl } = this.props.mapItem(entity);
 		return (
-			<li key={item.id} 
+			<li key={entity.id} 
 				className={selected ? 'selected' : ''} 
-				onClick={() => this.props.onSelectItem(item.id)}>
+				onClick={() => this.props.onSelectEntity(entity.id)}>
 					{title && <span className="cp-li-title">{title}</span>}
 					{subtitle && <span className="cp-li-subtitle">{subtitle}</span>}
 			</li>

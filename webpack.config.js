@@ -8,11 +8,11 @@ module.exports = {
 	},
 	devServer: {
 		host: "0.0.0.0",
-		port: 3080,
+		port: 9200,
 		contentBase: "./src",
 		proxy: {
 			'/api': {
-				target: 'http://0.0.0.0:2081',
+				target: 'http://blockcms.api:9100',
 				secure: false
 			}
     	}

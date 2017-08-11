@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { ActionCreator, Dispatch } from 'redux';
+import { ActionCreator } from 'redux';
 
-import { registerComponent, ComponentGroups, IComponentConfig } from 'scripts/component-connect';
+import { registerComponent, ComponentGroups, IComponentSetup, Dispatcher } from 'scripts/component-connect';
 import { IContentEntity } from 'scripts/entity';
 import { toArray } from 'scripts/util';
-import { IPageState, PageActions } from 'components/page';
+import { IPageState } from 'components/page';
 import { IPagePartProp } from 'components/page-part';
 
 import { IListConfig, IListItemMapConfig } from './list.config';
@@ -14,39 +14,46 @@ import { listReducer } from './list.reducer';
 import { IListProp, ListView } from './list.view';
 
 
-
-
-const config: IComponentConfig<IListProp> = {
+const config: IComponentSetup<IListProp, ListActions.IDefinition> = {
+	actions: ListActions.Defaults,
 	group: ComponentGroups.PagePart,
 	name: 'List',
 	reducer: listReducer,
 	viewClass: ListView
 }
 
-const mapStateDispatchToProps = (ownProps: IPagePartProp,
-	localState: IListState,
-	pageState: IPageState,
-	localDispatch: Dispatch<any>,
-	pageDispatch: Dispatch<any>): IListProp => {
-	let config = localState.config as IListConfig;
+function mapStateToProps(
+	state: IListState
+) {
+	let config = state.config as IListConfig;
 
-	console.log('page state', pageState);
-	
 	return {
-		name: ownProps.name,
 		label: config.label,
-		isLoading: localState.isLoading,
-		items: localState.items,
-		selectedEntityId: pageState.selectedEntityId,
+		isLoading: state.isLoading,
+		items: state.items,
+		selectedEntityId: state.selectedEntityId,
 		mapItem: (item: IContentEntity) => mapEntity(item, config.itemMap),
-		onLoad: () => localDispatch(ListActions.load(localState)),
-		onSelectItem: (entityId: string) => pageDispatch(PageActions.selectItemAction(entityId))
 	};
+}
+
+function mapDispatchToProps(dispatch: Dispatcher<any>, ownProps: IPagePartProp, actions: ListActions.IDefinition) {
+	return (topDispatch: Dispatcher<any>) => {
+		return  {
+			onLoad: () => dispatch(actions.load),
+			onSelectEntity: (entityId: string) => ownProps.onSelectEntity(entityId)
+		}
+	}
+}
+
+function mergeProps(a: any, b: any, c: any): IListProp {
+	return { ...a, ...b, ...c } as IListProp;
 }
 
 registerComponent(
 	config,
-	mapStateDispatchToProps
+	mapStateToProps,
+	mapDispatchToProps,
+	mergeProps
 );
 
 
