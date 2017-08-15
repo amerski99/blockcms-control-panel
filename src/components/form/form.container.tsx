@@ -69,11 +69,24 @@ function mapStateToProps(formState: IFormState) {
 function mapDispatchToProps(dispatch: Dispatcher<any>, ownProps: IPagePartProp, actions: FormActions.IDefinition) {
 	return (topDispatch: Dispatcher<any>) => {
 		return {
-			onClear: () => ownProps.onClearEntity(),
+			onClear: async () => {
+				await actions.clear();
+				return await ownProps.onClearEntity();
+			},
 			onLoad: () => dispatch(actions.load),
-			onRemove: () => dispatch(actions.remove),
+			onRemove: async () =>{
+				const result = await dispatch(actions.remove);
+				if (result) {
+					return await ownProps.onRemoveEntity(result);
+				}
+			},
 			onReset: () => dispatch(actions.reset),
-			onSubmit: () => dispatch(actions.submit)
+			onSubmit: async () => {
+				const result = await dispatch(actions.submit);
+				if (result) {
+					return await ownProps.onUpdateEntity(result);
+				}
+			}
 		}
 	}
 };

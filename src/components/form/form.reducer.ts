@@ -15,8 +15,9 @@ let defaultState = <IFormState>{
 let formReducer = handleActions({
 	[AppActions.ActionTypes.SelectPage]: (state: IFormState, action: any): IFormState => {
 		return {
-			...defaultState,
-			...state
+			...state,
+			currentEntity: undefined,
+			isStale: true
 		};
 	},
 	[FormActions.ActionTypes.Reset]: (state: IFormState, action: any): IFormState => {
@@ -25,11 +26,16 @@ let formReducer = handleActions({
 			isModified: false
 		};
 	},
-	[StandardPageActions.ActionTypes.ClearEntity]: (state: IFormState, action: any) => {
+	[FormActions.ActionTypes.Clear]: (state: IFormState, action: any) => {
 		return {
 			...state,
-			currentEntity: undefined,
-			isModified: false
+			currentEntity: {
+				id: undefined,
+				isModified: {},
+				writeData: {}
+			},
+			isModified: false,
+			isStale: false
 		};
 	},
 	[StandardPageActions.ActionTypes.SelectEntity]: (state: IFormState, action: any): IFormState => {

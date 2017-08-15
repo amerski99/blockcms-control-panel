@@ -9,6 +9,6 @@ export class EmptyView extends AutoLoadComponent<IFormItemComponentProp> {
 	}
 
 	render(): JSX.Element {
-		return null;
+		return <div><input type='hidden' value={this.props.value||''} /></div>;
 	}
 }

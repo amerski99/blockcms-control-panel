@@ -45,7 +45,7 @@ export enum OperandTypeCodes {
 const AuthToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1OGJkZGJmMzM4MDUwNTEyYWVkN2I0YzIiLCJqdGkiOiJkNDg5NzhjNy0yYzFlLTQ5YjEtYWRmNy0yYWM4NDgwODVhNDIiLCJpYXQiOjE0OTkxNTA5MTksIm5iZiI6MTQ5OTE1MDkxOSwiZXhwIjoxNDk5NzU1NzE5LCJpc3MiOiJwb3dlcnNjb3V0LWNtcyIsImF1ZCI6InBvd2Vyc2NvdXQtY21zIn0._j6SCX0jv1DhA5YyrO5EsqnbjAamuhWmS8TYHCPBlFs'
 const BaseUrl = '/api/content/items'
 
-export function queryEntities(query: IQueryDefinition): Promise<any> {
+export function queryEntitiesAsync(query: IQueryDefinition): Promise<any> {
 	let url = null;
 	if (query.id) {
 		console.log('id query', query.id);
@@ -64,13 +64,13 @@ export function queryEntities(query: IQueryDefinition): Promise<any> {
 	return Promise.resolve();
 }
 
-export function insertEntity(data: Object) {
+export function insertEntityAsync(data: Object) {
 	console.log('insert entity',  data);
 
 	return request(BaseUrl, 'POST', data);
 }
 
-export function updateEntity(id: string, data: Object): Promise<any> {
+export function updateEntityAsync(id: string, data: Object): Promise<any> {
 	console.log('update entity.  id: ', id, data);
 
 	let url = BaseUrl + '/' + encodeURIComponent(id);
@@ -78,7 +78,7 @@ export function updateEntity(id: string, data: Object): Promise<any> {
 	return request(url, 'PUT', data);
 }
 
-export function deleteEntity(id: string): Promise<any> {
+export function deleteEntityAsync(id: string): Promise<any> {
 	console.log('remove entity.  id: ', id);
 
 	let url = BaseUrl + '/' + encodeURIComponent(id);

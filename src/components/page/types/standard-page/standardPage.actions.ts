@@ -4,13 +4,15 @@ export namespace StandardPageActions {
 	export const ActionTypes = {
 		ClearEntity: 'PAGE.ENTITY_CLEAR',
 		SelectEntity: 'PAGE.ENTITY_SELECT',
-		UpdateEntity: 'PAGE.ENTITY_UPDATE'
+		UpdateEntity: 'PAGE.ENTITY_UPDATE',
+		RemoveEntity: 'PAGE.ENTITY_REMOVE'
 	};
 
 	export interface IDefinition {
 		clearEntity: () => any
 		selectEntity: (entityId:string) => any
 		updateEntity: (entity:any) => any
+		removeEntity: (entityId:string) => any
 	}
 	
 	export const Default: IDefinition = {
@@ -30,6 +32,12 @@ export namespace StandardPageActions {
 				type: ActionTypes.UpdateEntity,
 				entity: entity
 			};
+		},
+		removeEntity: function removeEntity(entityId:string) {
+			return {
+				type: ActionTypes.RemoveEntity,
+				entityId: entityId
+			};			
 		}
 	}
 }

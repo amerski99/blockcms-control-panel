@@ -4,9 +4,10 @@ import { IPagePartConfig, PagePart } from 'components/page-part';
 
 export interface IStandardPageProp {
 	parts: { [name:string]: IPagePartConfig }
-	onClearEntity(): void
-	onSelectEntity(entityId:string): void
-	onUpdateEntity(entity:any): void
+	onClearEntity(): any
+	onRemoveEntity(entityId:string): any
+	onSelectEntity(entityId:string): any
+	onUpdateEntity(entity:any): any
 }
 
 export class StandardPage extends React.Component<IStandardPageProp, {}> {

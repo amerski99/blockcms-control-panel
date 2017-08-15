@@ -21,15 +21,11 @@ export namespace ListActions {
 	}
 
 	export const Defaults: IDefinition = {
-		load: function load(dispatch: Dispatch<any>, getState: () => IListState) {
+		load: async function listLoad(dispatch: Dispatch<any>, getState: () => IListState){
 			let listState = getState();
 
-			dispatch({
-				type: ActionTypes.Load
-			});
-
 			if (shouldReloadList(listState)) {
-				fetchAction(dispatch, listState);
+				return await fetchActionAsync(dispatch, listState);
 			}
 		},
 		selectEntity: function listSelectEntity(entityId: string) {
@@ -40,19 +36,24 @@ export namespace ListActions {
 		}
 	}
 
-	function fetchAction(dispatch: Dispatch<any>, listState: IListState) {
+	async function fetchActionAsync(dispatch: Dispatch<any>, listState: IListState) {
+		dispatch({
+			type: ActionTypes.FetchStart
+		});
+
 		let query = buildQuery(listState.config);
+		if (!query) return;
 
-		if (query) {
-			dispatch({
-				type: ActionTypes.FetchStart
-			});
-
-			return Api.queryEntities(query)
-				.then((result: any) => dispatch(fetchSuccessAction(result)))
-				.catch((response: any) => dispatch(fetchErrorAction(response)))
-				.then(() => dispatch(fetchCompleteAction()));
+		let result;
+		try {
+			result = await Api.queryEntitiesAsync(query);
+			dispatch(fetchSuccessAction(result));
 		}
+		catch (ex) {
+			dispatch(fetchErrorAction(ex));
+		}
+		dispatch(fetchCompleteAction());
+		return result;
 	}
 
 	function fetchSuccessAction(result: any) {
@@ -81,6 +82,6 @@ export namespace ListActions {
 
 
 	function shouldReloadList(listState: IListState): boolean {
-		return !listState.isLoading && !listState.isFresh;
+		return listState.isStale;
 	}
 }

@@ -15,6 +15,7 @@ export interface IFormItemProp extends IComponentWrapProps {
 export interface IFormItemComponentProp {
 	label?: string
 	value: any
+	isLoaded: boolean
 	onUpdate?(newValue:any):any
 	onLoad():any
 }
@@ -30,7 +31,8 @@ export namespace FormItemDefaultContainer {
 	export function mapStateToProps(state: IFormItemState, ownProps: IFormItemProp) {
 		return {
 			label: ownProps.config.label,
-			value: state.value
+			value: state.value,
+			isLoaded: state.isLoaded
 		}
 	}
 

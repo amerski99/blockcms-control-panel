@@ -12,7 +12,8 @@ module.exports = {
 		contentBase: "./src",
 		proxy: {
 			'/api': {
-				target: 'http://blockcms.api:9100',
+				//target: 'http://blockcms.api:9100',
+				target: 'http://localhost:9100',
 				secure: false
 			}
     	}

@@ -4,6 +4,7 @@ import { IFormItemConfig, IFormItemProp, FormItem } from 'components/form-item';
 import { IFormButtonProp, FormButton } from './formButton';
 import { IFormItemConfigMap } from './form.config';
 import { toArray } from 'scripts/util';
+import { AutoLoadComponent } from "scripts/autoloadComponent";
 
 export interface IFormProp {
 	name: string
@@ -19,15 +20,7 @@ export interface IFormButtons {
 	[type: string]: IFormButtonProp 
 }
 
-export class Form extends React.Component<IFormProp, {}> {
-	componentWillMount() {
-		this.props.onLoad();
-	}
-
-	componentWillReceiveProps(nextProps: Readonly<IFormProp>, nextContext: any) {
-		nextProps.onLoad();
-	}
-
+export class Form extends AutoLoadComponent<IFormProp> {
 	render() {
 		let { label, formItems, buttons, isDisabled } = this.props;
 

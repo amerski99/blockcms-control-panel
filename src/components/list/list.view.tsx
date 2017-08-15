@@ -2,6 +2,7 @@ import * as React from 'react';
 import { IPagePartProp } from 'components/page-part';
 import { IEntity, IContentEntity } from 'scripts/entity';
 import { IListItemMapConfig  as IMappedListItem } from 'components/list';
+import { AutoLoadComponent } from 'scripts/autoloadComponent';
 
 export interface IListProp {
 	name: string,
@@ -14,11 +15,7 @@ export interface IListProp {
 	onSelectEntity(entityId: string): any 
 }
 
-export class ListView extends React.Component<IListProp, {}> {
-	componentWillMount() {
-		this.props.onLoad();
-	}
-	
+export class ListView extends AutoLoadComponent<IListProp> {
 	render() {
 		let { label, items } = this.props;
 

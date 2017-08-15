@@ -2,12 +2,13 @@ import { Dispatch } from 'redux';
 
 import { registerComponent, ComponentGroups, IComponentSetup } from 'scripts/component-connect';
 import { IPageProp, IPageState } from 'components/page';
-import { IFormState } from 'components/form';
+import { IFormState, FormActions } from 'components/form';
 import { IFormItemComponentProp, IFormItemProp, IFormItemState, IFormItemConfig } from 'components/form-item';
 import { EmptyView } from '../views/empty.view';
 import { FormItemActions } from '../formItem.actions';
-import { formItemReducer } from 'components/form-item/formItem.reducers';
+import { FormItemReducers } from 'components/form-item/formItem.reducers';
 import { registerFormItemComponent } from 'components/form-item/formItem.container';
+import { handleActions } from "redux-actions";
 
 interface IIFormItemStaticValueConfig extends IFormItemConfig {
 	value: any
@@ -15,25 +16,26 @@ interface IIFormItemStaticValueConfig extends IFormItemConfig {
 
 export type IFormItemStaticValueConfig = IIFormItemStaticValueConfig & { type: 'Static' };
 
-const actions = {
-	...FormItemActions.Defaults,
-	load: function loadStaticFormItem(dispatch: Dispatch<any>, getState: () => IFormItemState) {
-		let state = getState();
-		let config = state.config as IFormItemStaticValueConfig;
+const reducerMap = {
+	...FormItemReducers.defaultMap,
+	[FormActions.ActionTypes.Clear]: setState
+}
 
-		if (!state.isLoaded) {
-			dispatch({
-				type: FormItemActions.ActionTypes.Load,
-				value: config.value 	// get value from config instead of from state
-			});
+
+function setState(state: IFormItemState, action: any):IFormItemState {
+		const value = (<IFormItemStaticValueConfig>state.config).value;
+		return {
+			...state,
+			value,
+			origValue: value
 		}
 	}
-}
+
 const componentConfig: IComponentSetup<IFormItemComponentProp, FormItemActions.IDefinition> = {
-	actions: actions,
+	actions: FormItemActions.Defaults,
 	group: ComponentGroups.FormItem,
 	name: 'Static',
-	reducer: formItemReducer,
+	reducer: handleActions(reducerMap, <IFormItemState>{}),
 	viewClass: EmptyView
 }
 

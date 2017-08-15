@@ -10,35 +10,41 @@ import { StandardPageActions } from 'components/page/types/standard-page/standar
 import { IFormItemState } from 'components/form-item';
 import { FormActions } from 'components/form';
 
-let formItemReducer = handleActions({
-	[FormActions.ActionTypes.Reset]: (state: IFormItemState, action: any) => {
-		return {
-			...state,
-			value: state.origValue
-		};
-	},
-	[StandardPageActions.ActionTypes.ClearEntity]: (state: IFormItemState, action: any) => {
-		return {
-			...state,
-			value: undefined,
-			origValue: undefined
-		};
-	},
-	[FormActions.ActionTypes.FetchSuccess]: loadEntity,
-	[FormActions.ActionTypes.SaveSuccess]: loadEntity,
-	[FormItemActions.ActionTypes.Load]: (state: IFormItemState, action: any) => {
-		return {
-			...state,
-			isLoaded: true
-		}
-	},
-	[FormItemActions.ActionTypes.Update]: (state: IFormItemState, action: any) => {
-		return {
-			...state,
-			value: action.value
-		}
-	}	
-}, <IFormItemState>{})
+export namespace FormItemReducers {
+	export const defaultMap ={
+		[FormActions.ActionTypes.Reset]: (state: IFormItemState, action: any) => {
+			return {
+				...state,
+				value: state.origValue
+			};
+		},
+		[FormActions.ActionTypes.Clear]: (state: IFormItemState, action: any): IFormItemState => {
+			return {
+				...state,
+				value: undefined,
+				origValue: undefined
+			};
+		},
+		[FormActions.ActionTypes.FetchSuccess]: loadEntity,
+		[FormActions.ActionTypes.SaveSuccess]: loadEntity,
+		[FormItemActions.ActionTypes.Load]: (state: IFormItemState, action: any) => {
+			return {
+				...state,
+				isLoaded: true
+			}
+		},
+		[FormItemActions.ActionTypes.Update]: (state: IFormItemState, action: any) => {
+			return {
+				...state,
+				value: action.value
+			}
+		}	
+	};
+
+	export const defaultReducer = handleActions(defaultMap, <IFormItemState>{});
+}
+
+
 
 function loadEntity(state: IFormItemState, action: any) {
 	let value = action.result && action.result.fields[state.name];
@@ -49,5 +55,3 @@ function loadEntity(state: IFormItemState, action: any) {
 		isLoaded: false
 	}
 }
-
-export { formItemReducer }

@@ -28,7 +28,8 @@ function mapDispatchToProps(dispatch: Dispatcher<any>, ownProps: IPageProp, acti
 		return {
 			onClearEntity: () => dispatch(actions.clearEntity()),
 			onSelectEntity: (entityId: string) => dispatch(actions.selectEntity(entityId)),
-			onUpdateEntity: (entity:any) => dispatch(actions.updateEntity(entity))
+			onUpdateEntity: (entity:any) => dispatch(actions.updateEntity(entity)),
+			onRemoveEntity: (entityId: string) => dispatch(actions.removeEntity(entityId))
 		}
 	}
 }

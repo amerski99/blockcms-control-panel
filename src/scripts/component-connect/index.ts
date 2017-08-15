@@ -167,13 +167,13 @@ export function createComponentsReducer(
 								|| actionComponents[componentLevel-1] == name;
 
 			if (appliesToMe) {	
-				console.log('applies to me...', action.type, name, componentLevel);
+				//console.log('applies to me...', action.type, name, componentLevel);
 
 				let prevPartState = componentsState[name];
 				let newPartState = component.reducer(prevPartState || defaultState, action, parentState);
 				
 				if (newPartState !== prevPartState) {
-					console.log('...changed');
+				//	console.log('...changed');
 					return {
 						...componentsState,
 						[name]: newPartState
@@ -181,7 +181,7 @@ export function createComponentsReducer(
 				}
 			}
 			else {
-				console.log('NOT me...', action.type, name, componentLevel);
+			//	console.log('NOT me...', action.type, name, componentLevel);
 			}
 
 			return componentsState;

@@ -8,9 +8,10 @@ import { IPageState } from 'components/page';
 
 export interface IPagePartProp extends IComponentWrapProps {
 	config: IPagePartConfig	
-	onClearEntity(): void
-	onSelectEntity(entityId:string): void
-	onUpdateEntity(entity:any): void
+	onClearEntity(): any
+	onRemoveEntity(entityId:string): any
+	onSelectEntity(entityId:string): any
+	onUpdateEntity(entity:any): any
 }
  
 const PagePart = wrapComponent(

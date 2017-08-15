@@ -6,7 +6,7 @@ import { DispatchAction } from "scripts/component-connect";
 
 export namespace FormActions {
 	export const ActionTypes = {
-		Clear: 'FORM.RESET',
+		Clear: 'FORM.CLEAR',
 		Load: 'FORM.LOAD',
 		Remove: 'FORM.REMOVE',
 		Reset: 'FORM.RESET',
@@ -32,22 +32,26 @@ export namespace FormActions {
 		reset: () => any
 		submit: DispatchAction<any, IFormState>
 	}
-	
+
 	export const Default: IDefinition = {
-		clear: function formClear(){
+		clear: () => {
 			return {
 				type: ActionTypes.Clear
 			};
 		},
-	 	load: function formLoad(dispatch: Dispatch<any>, getState: () => IFormState) {
+		load: async (dispatch: Dispatch<any>, getState: () => IFormState) => {
 			let formState = getState();
 			let entityId = formState.loadEntityId;
 
-			if (shouldReloadCurrentEntity(entityId, formState)) {
-				fetchAction(dispatch, entityId, formState.config);
+			if (entityId && formState.isStale) {
+				return await fetchActionAsync(dispatch, entityId, formState.config);
 			}
+			else if (!formState.currentEntity && formState.isStale) {
+				dispatch(Default.clear());
+			}
+			return false;
 		},
-		remove: function formRemove(dispatch: Dispatch<any>, getState: () => IFormState) {
+		remove: async (dispatch: Dispatch<any>, getState: () => IFormState) => {
 			let formState = getState();
 			let { id } = formState.currentEntity;
 
@@ -56,16 +60,14 @@ export namespace FormActions {
 				entityId: id
 			});
 
-			//if (shouldSubmit(formState)) {
-			dispatch(removeAction(id))
-			//}
+			return await removeActionAsync(dispatch, id);
 		},
-		reset: function formReset() {
+		reset: async () => {
 			return {
 				type: ActionTypes.Reset
 			};
 		},
-		submit: function formSubmit(dispatch: Dispatch<any>, getState: () => IFormState) {
+		submit: async (dispatch: Dispatch<any>, getState: () => IFormState) => {
 			let formState = getState();
 			let { id, writeData } = formState.currentEntity;
 
@@ -76,25 +78,31 @@ export namespace FormActions {
 			});
 
 			if (shouldSubmit(formState)) {
-				return saveAction(dispatch, id, writeData)
+				return await saveActionAsync(dispatch, id, writeData)
 			}
+			return false;
 		}
 	}
 
-	function fetchAction(dispatch: Dispatch<any>, entityId: string, formConfig: IFormConfig) {
+	async function fetchActionAsync(dispatch: Dispatch<any>, entityId: string, formConfig: IFormConfig) {
 		dispatch({
 			type: ActionTypes.FetchStart,
 			entityId: entityId
 		});
 
 		let query = buildQuery(entityId, formConfig);
+		if (!query) return;
 
-		if (query) {
-			return Api.queryEntities(query)
-				.then((result: any) => dispatch(fetchSuccessAction(entityId, result)))
-				.catch((response: any) => dispatch(fetchErrorAction(entityId, response)))
-				.then(() => dispatch(fetchCompleteAction(entityId)));
+		let result;
+		try {
+			result = await Api.queryEntitiesAsync(query);
+			dispatch(fetchSuccessAction(entityId, result));
 		}
+		catch (ex) {
+			dispatch(fetchErrorAction(entityId, ex));
+		}
+		dispatch(fetchCompleteAction(entityId));
+		return result;
 	}
 
 	function fetchSuccessAction(entityId: string, result: any) {
@@ -120,7 +128,7 @@ export namespace FormActions {
 		};
 	}
 
-	function saveAction(dispatch: Dispatch<any>, entityId: string, writeData: Object) {
+	async function saveActionAsync(dispatch: Dispatch<any>, entityId: string, writeData: Object) {
 		dispatch({
 			type: ActionTypes.SaveStart,
 			entityId: entityId
@@ -130,14 +138,19 @@ export namespace FormActions {
 			fields: writeData
 		};
 
-		let saveMethod = entityId ?
-			Api.updateEntity(entityId, saveData)
-			: Api.insertEntity(saveData);
+		let result;
 
-		return saveMethod
-			.then((result: any) => dispatch(saveSuccessAction(entityId, result)))
-			.catch((response: any) => dispatch(saveErrorAction(entityId, response)))
-			.then(() => dispatch(saveCompleteAction(entityId)));
+		try {
+			result = await (entityId ?
+					Api.updateEntityAsync(entityId, saveData) : 
+					Api.insertEntityAsync(saveData));
+			dispatch(saveSuccessAction(entityId, result));
+		}
+		catch (ex) {
+			dispatch(saveErrorAction(entityId, ex));
+		}
+		dispatch(saveCompleteAction(entityId));
+		return result;
 	}
 
 	function saveSuccessAction(entityId: string, result: any) {
@@ -163,19 +176,22 @@ export namespace FormActions {
 		};
 	}
 
-	function removeAction(entityId: string) {
-		return (dispatch: Dispatch<any>) => {
-
+	async function removeActionAsync(dispatch: Dispatch<any>, entityId: string) {
 			dispatch({
 				type: ActionTypes.RemoveStart,
 				entityId: entityId
 			});
+		let result;
 
-			return Api.deleteEntity(entityId)
-				.then((result: any) => dispatch(removeSuccessAction(entityId)),
-				(response: any) => dispatch(removeErrorAction(entityId, response)))
-				.then(() => dispatch(removeCompleteAction(entityId)));
+		try {
+			result = await Api.deleteEntityAsync(entityId);
+			dispatch(removeSuccessAction(entityId));
 		}
+		catch (ex) {
+			dispatch(removeErrorAction(entityId, ex));
+		}
+		dispatch(removeCompleteAction(entityId));
+		return result;
 	}
 
 	function removeSuccessAction(entityId: string) {
@@ -210,10 +226,6 @@ export namespace FormActions {
 	function shouldSubmit(formState: IFormState): boolean {
 		return !formState.isSaving
 			&& any(formState.currentEntity.isModified, true)
-	}
-
-	function shouldReloadCurrentEntity(entityId: string, formState: IFormState): boolean {
-		return formState.isStale;
 	}
 
 

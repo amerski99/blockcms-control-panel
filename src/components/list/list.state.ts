@@ -5,7 +5,7 @@ import { IListConfig } from './list.config';
 export interface IListState {
     config: IListConfig
     isLoading: boolean
-	isFresh: boolean
+	isStale: boolean
 	selectedEntityId: string
     items: Array<IContentEntity>
 }
